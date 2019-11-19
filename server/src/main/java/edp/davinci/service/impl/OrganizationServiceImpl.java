@@ -20,18 +20,28 @@
 package edp.davinci.service.impl;
 
 import com.alibaba.druid.util.StringUtils;
-import edp.core.enums.MailContentTypeEnum;
 import edp.core.exception.NotFoundException;
 import edp.core.exception.ServerException;
 import edp.core.exception.UnAuthorizedExecption;
-import edp.core.model.MailContent;
-import edp.core.utils.*;
+import edp.core.utils.AESUtils;
+import edp.core.utils.CollectionUtils;
+import edp.core.utils.FileUtils;
+import edp.core.utils.MailUtils;
+import edp.core.utils.ServerUtils;
+import edp.core.utils.TokenUtils;
 import edp.davinci.core.common.Constants;
 import edp.davinci.core.enums.LogNameEnum;
 import edp.davinci.core.enums.UserOrgRoleEnum;
-import edp.davinci.core.model.TokenEntity;
-import edp.davinci.dao.*;
-import edp.davinci.dto.organizationDto.*;
+import edp.davinci.dao.OrganizationMapper;
+import edp.davinci.dao.ProjectMapper;
+import edp.davinci.dao.RelUserOrganizationMapper;
+import edp.davinci.dao.RoleMapper;
+import edp.davinci.dao.UserMapper;
+import edp.davinci.dto.organizationDto.OrganizationBaseInfo;
+import edp.davinci.dto.organizationDto.OrganizationCreate;
+import edp.davinci.dto.organizationDto.OrganizationInfo;
+import edp.davinci.dto.organizationDto.OrganizationMember;
+import edp.davinci.dto.organizationDto.OrganizationPut;
 import edp.davinci.model.Organization;
 import edp.davinci.model.Project;
 import edp.davinci.model.RelUserOrganization;
@@ -46,7 +56,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service("organizationService")
@@ -99,6 +113,11 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     @Transactional
     public OrganizationBaseInfo createOrganization(OrganizationCreate organizationCreate, User user) throws ServerException {
+        // Create only for admin role
+        if (!user.getActive() || !user.getAdmin()) {
+            log.info("Only admin can new an Organization");
+            throw new ServerException("Only admin can new an Organization");
+        }
         if (isExist(organizationCreate.getName(), null, null)) {
             log.info("the organization name {} is alread taken", organizationCreate.getName());
             throw new ServerException("the organization name " + organizationCreate.getName() + " is alread taken");
@@ -357,37 +376,48 @@ public class OrganizationServiceImpl implements OrganizationService {
             throw new ServerException("The email address of the invitee is EMPTY");
         }
 
-        /**
-         * 邀请组织成员token生成实体
-         * 规则：
-         * username: 邀请人id:-:被邀请人id:-:组织id
-         * password: 被邀请人密码
-         */
-        TokenEntity orgInviteDetail = new TokenEntity();
-        orgInviteDetail.setUsername(user.getId() + Constants.SPLIT_CHAR_STRING + memId + Constants.SPLIT_CHAR_STRING + organization.getId());
-        orgInviteDetail.setPassword(member.getPassword());
+        //验证通过，建立关联
+        rel = new RelUserOrganization(orgId, memId, UserOrgRoleEnum.MEMBER.getRole());
+        int insert = relUserOrganizationMapper.insert(rel);
 
-        Map<String, Object> content = new HashMap<>();
-        content.put("username", member.getUsername());
-        content.put("inviter", user.getUsername());
-        content.put("orgName", organization.getName());
-        content.put("host", serverUtils.getHost());
-        //aes加密token
-        content.put("token", AESUtils.encrypt(tokenUtils.generateContinuousToken(orgInviteDetail), null));
-        try {
-            MailContent mailContent = MailContent.MailContentBuilder.builder()
-                    .withSubject(String.format(Constants.INVITE_ORG_MEMBER_MAIL_SUBJECT, user.getUsername(), organization.getName()))
-                    .withTo(member.getEmail())
-                    .withMainContent(MailContentTypeEnum.TEMPLATE)
-                    .withTemplate(Constants.INVITE_ORG_MEMBER_MAIL_TEMPLATE)
-                    .withTemplateContent(content)
-                    .build();
-
-            mailUtils.sendMail(mailContent, null);
-        } catch (ServerException e) {
-            log.info(e.getMessage());
-            e.printStackTrace();
+        if (insert > 0) {
+            //修改成员人数
+            organization.setMemberNum(organization.getMemberNum() + 1);
+            organizationMapper.updateMemberNum(organization);
+        } else {
+            throw new ServerException("unknown fail");
         }
+//        /**
+//         * 邀请组织成员token生成实体
+//         * 规则：
+//         * username: 邀请人id:-:被邀请人id:-:组织id
+//         * password: 被邀请人密码
+//         */
+//        TokenEntity orgInviteDetail = new TokenEntity();
+//        orgInviteDetail.setUsername(user.getId() + Constants.SPLIT_CHAR_STRING + memId + Constants.SPLIT_CHAR_STRING + organization.getId());
+//        orgInviteDetail.setPassword(member.getPassword());
+//
+//        Map<String, Object> content = new HashMap<>();
+//        content.put("username", member.getUsername());
+//        content.put("inviter", user.getUsername());
+//        content.put("orgName", organization.getName());
+//        content.put("host", serverUtils.getHost());
+//        //aes加密token
+//        content.put("token", AESUtils.encrypt(tokenUtils.generateContinuousToken(orgInviteDetail), null));
+//        try {
+//            MailContent mailContent = MailContent.MailContentBuilder.builder()
+//                    .withSubject(String.format(Constants.INVITE_ORG_MEMBER_MAIL_SUBJECT, user.getUsername(), organization.getName()))
+//                    .withTo(member.getEmail())
+//                    .withMainContent(MailContentTypeEnum.TEMPLATE)
+//                    .withTemplate(Constants.INVITE_ORG_MEMBER_MAIL_TEMPLATE)
+//                    .withTemplateContent(content)
+//                    .build();
+//
+//            mailUtils.sendMail(mailContent, null);
+//        } catch (ServerException e) {
+//            log.info(e.getMessage());
+//            e.printStackTrace();
+//        }
     }
 
 

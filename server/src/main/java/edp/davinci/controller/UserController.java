@@ -20,13 +20,16 @@
 package edp.davinci.controller;
 
 import com.alibaba.druid.util.StringUtils;
-import edp.core.annotation.AuthIgnore;
 import edp.core.annotation.CurrentUser;
 import edp.core.enums.HttpCodeEnum;
 import edp.davinci.common.controller.BaseController;
 import edp.davinci.core.common.Constants;
 import edp.davinci.core.common.ResultMap;
-import edp.davinci.dto.userDto.*;
+import edp.davinci.dto.userDto.ChangePassword;
+import edp.davinci.dto.userDto.SendMail;
+import edp.davinci.dto.userDto.UserBaseInfo;
+import edp.davinci.dto.userDto.UserPut;
+import edp.davinci.dto.userDto.UserRegist;
 import edp.davinci.model.User;
 import edp.davinci.service.UserService;
 import io.swagger.annotations.Api;
@@ -39,7 +42,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import springfox.documentation.annotations.ApiIgnore;
 
@@ -65,9 +75,9 @@ public class UserController extends BaseController {
      * @param bindingResult
      * @return
      */
-    @ApiOperation(value = "insert user")
-    @AuthIgnore
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+//    @ApiOperation(value = "insert user")
+//    @AuthIgnore
+//    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity regist(@Valid @RequestBody UserRegist userRegist, @ApiIgnore BindingResult bindingResult) {
 
         if (bindingResult.hasErrors()) {
@@ -86,9 +96,9 @@ public class UserController extends BaseController {
      * @param request
      * @return
      */
-    @ApiOperation(value = "active user")
-    @AuthIgnore
-    @PostMapping(value = "/active/{token}")
+//    @ApiOperation(value = "active user")
+//    @AuthIgnore
+//    @PostMapping(value = "/active/{token}")
     public ResponseEntity activate(@PathVariable String token,
                                    HttpServletRequest request) {
 
@@ -144,8 +154,8 @@ public class UserController extends BaseController {
      * @param request
      * @return
      */
-    @ApiOperation(value = "user active sendmail")
-    @PostMapping(value = "/sendmail", consumes = MediaType.APPLICATION_JSON_VALUE)
+//    @ApiOperation(value = "user active sendmail")
+//    @PostMapping(value = "/sendmail", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity sendMail(@Valid @RequestBody SendMail sendMail,
                                    @ApiIgnore BindingResult bindingResult,
                                    @ApiIgnore @CurrentUser User user,

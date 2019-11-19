@@ -193,6 +193,7 @@ export class Organization extends React.PureComponent <IOrganizationProps, {}> {
             <Avatar path={avatar} enlarge={false} size="small"/>
             <div className={styles.title}>{name}</div>
           </div>
+          { currentOrganization && currentOrganization.role === 1 ?
           <Tabs>
             <TabPane tab={<span><Icon type="api" />项目<span className={styles.badge}>{projectNum}</span></span>} key="projects">
               <ProjectList
@@ -236,7 +237,7 @@ export class Organization extends React.PureComponent <IOrganizationProps, {}> {
                   deleteOrganization={this.deleteOrganization}
                 />
               </TabPane> : ''}
-          </Tabs>
+          </Tabs>: ''}
         </Box.Body>
       </Box>
     )
